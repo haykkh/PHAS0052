@@ -1,7 +1,9 @@
 # PHAS0052: Group Project
 > Simluating the Mpemba effect using LAMMPS & VMD
 
-PHAS0052 is a third year module at UCL
+---
+
+PHAS0052 is a third year module at UCL:
 
 > This module aims to teach students how to function effectively in a group, simulating a professional working environment, tackling a problem in physics requiring group co-operation for its solutions. The technical skills exercised in the collective solution of the set problem rely on practical skills developed through earlier academic study in Physics.
 
