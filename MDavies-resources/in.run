@@ -1,0 +1,120 @@
+####################################################################################
+# External variables that have to be passed on call
+# Temperature 	= temperature of the system
+# trjFile	= name of the .xtc trajectory file
+# dataFile	= name of the .data input for Lammps
+# nRand		= random number as seed for the velocity creation
+# Timestep	= timestep in fs
+# Eps		= LJ epsilon of mW C interaction
+# Sigma		= LJ epsilon of mW C interaction
+# nTimesteps	= number of timesteps to run
+# nStride       = stride of thermo and trajectory output
+# pass variables to the script via ${variable_name}
+#####################################################################################
+units          real #read on lammps how this defines the units for energy, forces etc.
+dimension      3 #simulation simension. 3D
+newton         on
+processors     * * 1 #(x y z) sets how splits into box between processors, * does auto
+boundary       p p m #(x y z) periodic boundary conditions
+atom_style     atomic #sets "style" of atoms being used in simulation. i.e. what attributes the atoms have (bonds, angles, spin..)
+box tilt large
+read_data      ${dataIN} #system set up, ie. type 1 and 2 atoms at certain positions and velocities
+#..but this file doesn't contain masses so need line below
+####################################################################################
+#mass - tell lammps atom masses. syntax: mass atom-type value
+mass           1 18.015
+mass           2 12.011
+
+#groups - set the atoms in the simulation to belong to groups
+#syntax: group "group name" type n
+#set the groups by assigning "atom types" to them 
+group          mW 	type 1 #makes a group called "mW" (ie H20) from all type 1 atoms, which are
+#..defined in the file read by read_data
+group          OH        type 2 #same but for the surface (type 2 is defined by read_data file)
+
+#set up interaction between the groups
+pair_style sw #sw = stilinger-weber potential
+pair_coeff * * ./mW-OH.sw mW OH  #file mW-OH.sw has potential definition in. Tell lammps to use this between group mW and OH defined above
+
+#another interaction example - here set up Lenard-Jones interation between type 1 and type 2 atoms, then interaction between type 2 and type 2. You would also need a water-water interaction
+#pair_coeff 1 2 lj/cut ${Eps} ${Sigma} # e.g. surface-water interaction
+#pair_coeff 2 2 lj/cut 0.0    ${Sigma} # e.g. surface-surface interaction (set to zero strength for a surface of frozen atoms)
+
+
+neighbor       2.0 bin
+
+timestep       ${Timestep} #timestep for the equations of motion - Very important! Careful to use appropriate value for the model you are using
+min_style      cg #minimisation algrothim that will be used in any minimize command given to lammps
+run_style      verlet #algorithm for the equations of motion "velocity-verlet" algorithm used
+
+#make sure compute the correct temp. exclude the stationary surface
+#syntax: compute name group attribute
+compute        mWtemp mW temp #so mWtemp is the name we've given to temperature of the mW group (i.e. water) -> call in thermo_style with c_mWtemp
+
+thermo         $(v_psStride*1000/v_Timestep) #how often outputs thermodynamic info. We don't want every timestep - too much information. Set up here so get information every v_psStride picoseconds
+#thermo style: thermodynamic input - shown as table of values specified
+thermo_style   custom step time etotal c_mWtemp ke pe enthalpy temp press vol density cpu
+thermo_modify  flush yes
+
+####################################################################################
+fix fZwalls all wall/reflect zhi EDGE #reflecting wall at top of sim - in case of evapouration
+fix fMin OH setforce 0 0 0 #ensure forces between frozen surface are zero
+
+#set wall for bottom of simulation - don't worry about
+fix wallz mW wall/lj93 zlo 0.001 0.5 2  5
+fix_modify wallz energy yes
+
+
+############running a simulation######################################################
+#1) the dump command tells lammps to save the positions and velocities of atoms - these can then be watched as a "trajectory" in the trajectoryfile ${trjFile}
+#Put dump command where you wish to view from
+
+dump d1 all xtc $(v_psStride*1000/v_Timestep) ${trjFile}
+
+#####equilibration phase of simulation####
+#1st we minimised our setup - this gets us towards minimum energy config - stops the simulation exploding from the start from huge forces etc (e.g. if two atoms were very close together the force would be huge between them -> meaning they leave the box between one timestep and the other -> simulation crashes
+#syntax: minimiza etol ftol maxiter maxeval - see lammps documentation self-explanatory
+minimize 1e-13 1e-15 5000 50000
+
+########set up gaussian velocities at a temp for the mW group##########
+#just some initial configuration from which to start
+velocity mW create ${T0} ${nRand} dist gaussian mom yes rot yes #initial set up, with random number
+
+##############equilibration###############
+# - important step - once potential energy of system has a small variance then equilibrated system
+#fix nvt command: runs nvt simulation (contstant number of particles, volume and controlled temperature)
+#syntax: fix fixID groupID style-name keywords..
+#keywords here are temp and tchain. temp: 3 arguements - start temp of sim, end temp of sim. temp damping parameter (how rapidly temperature is relaxed). tchain: one arguement - chain length
+#This is all to do with the thermostat the simulation uses. Nose-Hoover style. Read info on lammps and elsewhere if want to properly understand. These are set up appropraitely so just use values here. Do at a contant temperature
+
+timestep $(v_Timestep/2) #use half timestep for equilibration
+fix f1 mW nvt temp ${T0} ${T0} $(100*v_Timestep/2) tchain 10
+fix_modify f1 temp mWtemp #makes temp become mWtemp - i.e. thermostat acts on the water
+run $(50*1000/v_Timestep*2) #rough rule for how long need to equilibrate for a timestep
+
+####example of npt run - constant pressure instead of volume. System volume will change with time####
+##this will likely be necessary for your simulation. If doing bulk liquid (i.e. periodic b.c in xy&z) then need appropraite density - equilibrate with npt then do production run nvt in this case.
+#timestep $(v_Timestep/2)
+#fix f1 mW npt temp 275 275 $(100*v_Timestep/2) tchain 10 iso 1.0 1.0 $(1000*v_Timestep/2) pchain 10
+#fix_modify f1 temp mWtemp
+#run $(50*1000/v_Timestep*2)
+
+
+########production run##########
+#after equilibrated - this is the data and trajectory you want as the results
+#pass different T0 and T1 to cool as the sim goes -> "cooling ramp" simulation
+#Max temperature change rate you should use for mW model is 0.5K/ns - so run simulation for long enough to obey this rule. i.e. 275K to 265K should be a 20ns simulation
+unfix f1 #have to unfix the previous fix
+fix f2 mW nvt temp ${T0} ${T1} $(100*v_Timestep) tchain 10
+fix_modify f2 temp mWtemp #makes temp become mWtemp -> have to do everytime
+
+#dump d1 all xtc $(v_psStride*1000/v_Timestep) ${trjFile} #uncomment to just watch production run
+reset_timestep 0
+run 0
+
+#set simulation to run
+timestep ${Timestep}
+run $(v_nsRunTime*1000000/v_Timestep) #nsRuntime -> how long sim will run in nanoseconds
+
+
+
