@@ -11,6 +11,7 @@
 # nStride       = stride of thermo and trajectory output
 # pass variables to the script via ${variable_name}
 #####################################################################################
+
 units          real #read on lammps how this defines the units for energy, forces etc.
 dimension      3 #simulation simension. 3D
 newton         on
@@ -19,6 +20,8 @@ boundary       p p m #(x y z) periodic boundary conditions
 atom_style     atomic #sets "style" of atoms being used in simulation. i.e. what attributes the atoms have (bonds, angles, spin..)
 box tilt large
 read_data      ${dataIN} #system set up, ie. type 1 and 2 atoms at certain positions and velocities
+
+
 #..but this file doesn't contain masses so need line below
 ####################################################################################
 #mass - tell lammps atom masses. syntax: mass atom-type value
