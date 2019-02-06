@@ -5,7 +5,7 @@ mpirun -np 2 lmp_mpi	\
 	-var nRand $(($RANDOM + 10)) 			\
 	-var Timestep 10 					\
 	-var nsRunTime 1 				\
-	-var psStride 10 				\
+	-var psStride 5 				\
 	-var dataIN liq.data	\
 	-var T0 333					\
 	-var T1 273
