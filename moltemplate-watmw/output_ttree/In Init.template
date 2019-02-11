@@ -1,0 +1,17 @@
+    # -- Default styles for "WatMW" --
+    units           real
+    pair_style      sw
+    # -- Default styles for "TraPPE" --
+    units           real
+    atom_style      full
+    # (Hybrid force field styles were used for portability.)
+    bond_style      hybrid harmonic
+    angle_style     hybrid harmonic
+    dihedral_style  hybrid opls
+    improper_style  none
+    pair_style      hybrid lj/charmm/coul/charmm 9.0 11.0 9.0 11.0
+    pair_modify     mix arithmetic
+    special_bonds   lj 0.0 0.0 0.0
+  # -- Tell LAMMPS we want to use two different pair styles 
+  # -- (This overrides earlier settings.)
+  pair_style   hybrid  sw  lj/charmm/coul/charmm 9.0 11.0 9.0 11.0

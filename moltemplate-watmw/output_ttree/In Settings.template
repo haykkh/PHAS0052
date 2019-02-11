@@ -1,0 +1,27 @@
+    group WatMW type @/atom:WatMW/mW  #(Atoms of this type belong to the "WatMW" group)
+pair_coeff @/atom:TraPPE/CH2 @/atom:TraPPE/CH2 lj/charmm/coul/charmm 0.091411522 3.95
+pair_coeff @/atom:TraPPE/CH3 @/atom:TraPPE/CH3 lj/charmm/coul/charmm 0.194746286 3.75
+pair_coeff @/atom:TraPPE/CH4 @/atom:TraPPE/CH4 lj/charmm/coul/charmm 0.294106636 3.73
+    bond_coeff     @/bond:TraPPE/saturated    harmonic   120.0   1.54
+    angle_coeff    @/angle:TraPPE/backbone    harmonic   62.0022 114
+    dihedral_coeff @/dihedral:TraPPE/backbone opls 1.411036 -0.271016 3.145034 0.0
+    group TraPPE type @/atom:TraPPE/CH2 @/atom:TraPPE/CH3 @/atom:TraPPE/CH4
+  # -- Now indicate which atom type(s) are simulated using the "sw" pair style 
+  # -- In this case only one of the atom types is used (the mW water "atom").
+
+  pair_coeff    * * sw system.in.sw mW NULL NULL NULL
+
+  # -- Unfortunately LAMMPS itself does not understand molemlate syntax, so
+  # -- the atoms are identified by order in the list, not by name.  (The "mW" 
+  # -- refers to to an identifier in the system.in.sw file, not watmw.lt.)
+  # -- This command says that the first atom type corresponds to the "mW"
+  # -- atom in system.in.sw, and to ignore the remaining three atom types
+  # -- (correspond to the CH2, CH3, CH4 atom types defined in trappe1998.lt.
+  # --  We don't want to use the "sw" force field for interactions involving 
+  # --  these atom types, so we put "NULL" there.)
+  # -- Note: For this to work, you should probably run moltemplate this way:
+  # --     moltemplate.sh -a "@atom:WatMW/mW 1" system.lt
+  # -- This assigns the atom type named @atom:WatMW/mW to 1  (the first atom)
+pair_coeff @/atom:WatMW/mW @/atom:TraPPE/CH2 lj/charmm/coul/charmm 0.11914784667210733 3.558
+pair_coeff @/atom:WatMW/mW @/atom:TraPPE/CH3 lj/charmm/coul/charmm 0.17390830404497651 3.458
+pair_coeff @/atom:WatMW/mW @/atom:TraPPE/CH4 lj/charmm/coul/charmm 0.21371654257637612 3.448
