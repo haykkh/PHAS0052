@@ -15,3 +15,12 @@ PHAS0052 is a third year module at UCL:
 Our project is on investigating supercooling and the Mpemba effect. Part of that project includes some molecular dynamics simulations --> here we are!
 
 
+## Project Map
+
+
+    .
+    ├── MDavies-resources   # Simulations based on M Davies' files
+    ├── moltemplate-watmw   # Simulations based on moltemplates mW files
+    └── README.md
+
+
