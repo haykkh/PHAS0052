@@ -1,19 +1,49 @@
-# takes an argument for the test number
-# bash runwater.sh 3
-# for test #3
-# will create a directory 'watertest3'
-# and put all the output files in there
+# Runs laamps simulation with arguments provided
+# Plots (Step, Temp) graph using pizza.py
 
-mkdir watertest$1
+OUT=test
+TT0=333
+TT1=273
+DT=10
+RT=1
+STRIDE=5
+INPUT=in.water
+DATA=liq.data
+
+while getopts o:0:1:t:r:s:i:d: option
+do
+case "${option}"
+in
+o) OUT=${OPTARG};;
+0) TT0=${OPTARG};;
+1) TT1=${OPTARG};;
+t) DT=${OPTARG};;
+r) RT=${OPTARG};;
+s) STRIDE=${OPTARG};;
+i) INPUT=${OPTARG};;
+d) DATA=${OPTARG};;
+esac
+done 
+
+mkdir $OUT
 
 mpirun -np 2 lmp_mpi	\
-	-in in.water	\
-	-log watertest$1/watertest$1	\
-	-var trjFile watertest$1/watertest$1.xtc	\
+	-in $INPUT	\
+	-log $OUT/log.run	\
+	-var trjFile $OUT/trj.xtc	\
 	-var nRand $(($RANDOM + 10))	\
-	-var Timestep 10	\
-	-var nsRunTime 1	\
-	-var psStride 5		\
-	-var dataIN liq.data	\
-	-var T0 333		\
-	-var T1 273		\
+	-var Timestep $DT	\
+	-var nsRunTime $RT	\
+	-var psStride $STRIDE		\
+	-var dataIN $DATA	\
+	-var T0 $TT0		\
+	-var T1 $TT1		\
+
+mv stgrapher.py $OUT/stgrapher.py
+
+cd $OUT
+
+/Users/haykkhachatryan/.pyenv/versions/2.7.8/bin/python -i ~/pizza/src/pizza.py -f stgrapher.py
+
+mv stgrapher.py ../stgrapher.py
+
