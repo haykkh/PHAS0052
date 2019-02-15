@@ -1,0 +1,81 @@
+# This is a relatively complex example containing two different types of
+# molecules, and a hybrid of Lennard-Jones and 3-body SW "pair" styles.
+
+import "watmw.lt"
+import "wall.lt"
+
+write_once("Data Boundary") {
+  0.000000   56.000 xlo xhi
+  0.000000   56.000 ylo yhi
+  0.000000   56.000 zlo zhi
+}
+
+wat = new WatMW [13].move(0,0,4)
+                [13].move(0,4,0)
+                [13].move(4,0,0)
+
+wat[*][*][*].move(4,4,4)
+
+wall = new Wall [15].move(4.0,0,0) # x-y plane
+                 [15].move(0,4.0,0)
+
+
+wall2 = new Wall [14].move(0,0,4.0) # x-z plane
+                  [15].move(4.0,0,0)
+wall2[*][*].move(0,0,4)
+
+wall3 = new Wall [14].move(0,0,4.0) # y-z plane
+                 [14].move(0,4.0,0)
+wall3[*][*].move(0,4,4)
+
+wall4 = new Wall [14].move(4.0,0,0) # x-y plane
+                 [14].move(0,4.0,0)
+
+wall4[*][*].move(4,4,56.0)
+
+wall5 = new Wall [13].move(0,0,4.0) # x-z plane
+                  [14].move(4.0,0,0)
+
+wall5[*][*].move(4,56.0,4)
+
+wall6 = new Wall [13].move(0,0,4.0) # y-z plane
+                  [13].move(0,4.0,0)
+
+wall6[*][*].move(56.0,4,4)
+write_once("In Init") {
+  # -- Tell LAMMPS we want to use two different pair styles 
+  # -- (This overrides earlier settings.)
+}
+
+
+write_once("In Settings") {
+  # -- Now indicate which atom type(s) are simulated using the "sw" pair style 
+  # -- In this case only one of the atom types is used (the mW water "atom").
+
+  pair_coeff  * * mW-OH.sw mW OH
+    # masses
+  mass 1 18.015
+  mass 2 12.011
+  # -- Unfortunately LAMMPS itself does not understand molemlate syntax, so
+  # -- the atoms are identified by order in the list, not by name.  (The "mW" 
+  # -- refers to to an identifier in the system.in.sw file, not watmw.lt.)
+  # -- This command says that the first atom type corresponds to the "mW"
+  # -- atom in system.in.sw, and to ignore the remaining three atom types
+  # -- (correspond to the CH2, CH3, CH4 atom types defined in trappe1998.lt.
+  # --  We don't want to use the "sw" force field for interactions involving 
+  # --  these atom types, so we put "NULL" there.)
+  # -- Note: For this to work, you should probably run moltemplate this way:
+  # --     moltemplate.sh -a "@atom:WatMW/mW 1" system.lt
+  # -- This assigns the atom type named @atom:WatMW/mW to 1  (the first atom)
+}
+
+
+
+# -- Somewhere we must eventually define interactions 
+# -- between atoms from different molecule types
+
+write_once("In Settings") {
+}
+
+
+
