@@ -1,0 +1,5 @@
+  neighbor 2.0 bin
+
+  timestep 10
+  min_style cg
+  run_style verlet

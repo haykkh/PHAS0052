@@ -1,0 +1,443 @@
+LAMMPS (11 Aug 2017)
+
+
+# ----------------- Init Section -----------------
+
+include "system.in.init"
+        units real
+        pair_style sw
+    # -- Default styles for "WatMW" --
+    units           real
+    pair_style      sw
+  dimension 3
+  newton on
+  processors * * *
+  boundary p p p
+  atom_style atomic
+  box tilt large
+
+
+
+
+# ----------------- Atom Definition Section -----------------
+
+read_data "system.data"
+  orthogonal box = (0 0 0) to (48 48 48)
+  1 by 1 by 2 MPI processor grid
+  reading atoms ...
+  3375 atoms
+
+# ----------------- Settings Section -----------------
+
+include "system.in.settings"
+        group OH type 2
+1178 atoms in group OH
+    group mW type 1  #(Atoms of this type belong to the "WatMW" group)
+2197 atoms in group mW
+  # -- Now indicate which atom type(s) are simulated using the "sw" pair style
+  # -- In this case only one of the atom types is used (the mW water "atom").
+
+  pair_coeff  * * system.in.sw mW OH
+    # masses
+  mass 1 18.015
+  mass 2 12.011
+
+  # -- Unfortunately LAMMPS itself does not understand molemlate syntax, so
+  # -- the atoms are identified by order in the list, not by name.  (The "mW"
+  # -- refers to to an identifier in the system.in.sw file, not watmw.lt.)
+  # -- This command says that the first atom type corresponds to the "mW"
+  # -- atom in system.in.sw, and to ignore the remaining three atom types
+  # -- (correspond to the CH2, CH3, CH4 atom types defined in trappe1998.lt.
+  # --  We don't want to use the "sw" force field for interactions involving
+  # --  these atom types, so we put "NULL" there.)
+  # -- Note: For this to work, you should probably run moltemplate this way:
+  # --     moltemplate.sh -a "@atom:WatMW/mW 1" system.lt
+  # -- This assigns the atom type named @atom:WatMW/mW to 1  (the first atom)
+
+
+# ----------------- Equilibration Section -----------------
+
+include "system.in.equilibration"
+  compute mWtemp mW temp
+  thermo 500
+  thermo_style custom step time etotal c_mWtemp ke pe enthalpy temp press vol density cpu
+  thermo_modify flush yes
+
+  fix fMin OH setforce 0 0 0
+
+  dump d1 all xtc 500 trj.xtc
+  minimize 1e-13 1e-15 5000 50000
+WARNING: Using 'neigh_modify every 1 delay 0 check yes' setting during minimization (../min.cpp:168)
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 6.3065
+  ghost atom cutoff = 6.3065
+  binsize = 3.15325, bins = 16 16 16
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair sw, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.253 | 4.257 | 4.261 Mbytes
+Step Time TotEng c_mWtemp KinEng PotEng Enthalpy Temp Press Volume Density CPU 
+       0            0          nan            0            0          nan          nan            0          nan       110592   0.80672463            0 
+       1            1          nan            0            0          nan          nan            0          nan       110592   0.80672463     0.060583 
+Loop time of 0.0612485 on 2 procs for 1 steps with 3375 atoms
+
+67.3% CPU use with 2 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = forces are zero
+  Energy initial, next-to-last, final = 
+                   nan                nan                nan
+  Force two-norm initial, final = nan nan
+  Force max component initial, final = 1.42248e-05 1.42248e-05
+  Final line search alpha, max atom move = 0 0
+  Iterations, force evaluations = 1 0
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.032203   | 0.04265    | 0.053097   |   5.1 | 69.63
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.004049   | 0.014503   | 0.024956   |   8.7 | 23.68
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 1.3e-05    | 1.8e-05    | 2.3e-05    |   0.0 |  0.03
+Other   |            | 0.004078   |            |       |  6.66
+
+Nlocal:    1687.5 ave 1800 max 1575 min
+Histogram: 1 0 0 0 0 0 0 0 0 1
+Nghost:    3604.5 ave 3717 max 3492 min
+Histogram: 1 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 2 0 0 0 0 0 0 0 0 0
+FullNghs:  79803 ave 91635 max 67971 min
+Histogram: 1 0 0 0 0 0 0 0 0 1
+
+Total # of neighbors = 159606
+Ave neighs/atom = 47.2907
+Neighbor list builds = 0
+Dangerous builds = 0
+  velocity mW create 283 632532 dist gaussian mom yes rot yes
+
+  timestep 5
+  fix f1 mW nvt temp 283 283 500 tchain 10
+  fix_modify f1 temp mWtemp
+WARNING: Temperature for fix modify is not for group all (../fix_nh.cpp:1395)
+
+
+# ----------------- Interactions Section -----------------
+
+include "system.in.interactions"
+  neighbor 2.0 bin
+
+  timestep 10
+  min_style cg
+  run_style verlet
+
+
+# ----------------- Run Section -----------------
+
+include "system.in.run"
+  unfix f1
+  fix f2 mW nvt temp 283 263 1000 tchain 10
+  fix_modify f2 temp mWtemp
+WARNING: Temperature for fix modify is not for group all (../fix_nh.cpp:1395)
+
+  reset_timestep 0
+  run 0
+Per MPI rank memory allocation (min/avg/max) = 3.128 | 3.132 | 3.136 Mbytes
+Step Time TotEng c_mWtemp KinEng PotEng Enthalpy Temp Press Volume Density CPU 
+       0            0          nan          283    1852.4781          nan          nan    184.19324          nan       110592   0.80672463            0 
+Loop time of 1.75e-05 on 2 procs for 0 steps with 3375 atoms
+
+97.1% CPU use with 2 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0          | 0          | 0          |   0.0 |  0.00
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0          | 0          | 0          |   0.0 |  0.00
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.75e-05   |            |       |100.00
+
+Nlocal:    1687.5 ave 1800 max 1575 min
+Histogram: 1 0 0 0 0 0 0 0 0 1
+Nghost:    3604.5 ave 3717 max 3492 min
+Histogram: 1 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 2 0 0 0 0 0 0 0 0 0
+FullNghs:  79803 ave 91635 max 67971 min
+Histogram: 1 0 0 0 0 0 0 0 0 1
+
+Total # of neighbors = 159606
+Ave neighs/atom = 47.2907
+Neighbor list builds = 0
+Dangerous builds = 0
+
+  timestep 10
+  run 100000
+Per MPI rank memory allocation (min/avg/max) = 3.128 | 3.132 | 3.136 Mbytes
+Step Time TotEng c_mWtemp KinEng PotEng Enthalpy Temp Press Volume Density CPU 
+       0            0          nan          283    1852.4781          nan          nan    184.19324          nan       110592   0.80672463            0 
+     500         5000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    59.265483 
+    1000        10000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     132.1885 
+    1500        15000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    194.34261 
+    2000        20000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    261.27422 
+    2500        25000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    321.26211 
+    3000        30000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    380.98719 
+    3500        35000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    437.15909 
+    4000        40000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    493.31682 
+    4500        45000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    549.75226 
+    5000        50000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    613.19829 
+    5500        55000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    669.52049 
+    6000        60000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    726.65927 
+    6500        65000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    784.60379 
+    7000        70000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    845.96178 
+    7500        75000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    903.65625 
+    8000        80000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    960.10727 
+    8500        85000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1016.4141 
+    9000        90000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1073.9645 
+    9500        95000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1131.1621 
+   10000       100000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1191.4633 
+   10500       105000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1255.6245 
+   11000       110000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1317.8592 
+   11500       115000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     1375.847 
+   12000       120000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1439.3812 
+   12500       125000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1498.8702 
+   13000       130000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1570.3803 
+   13500       135000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1655.1931 
+   14000       140000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1725.3249 
+   14500       145000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1801.8864 
+   15000       150000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1865.4729 
+   15500       155000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    1936.6969 
+   16000       160000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2011.8898 
+   16500       165000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2086.7865 
+   17000       170000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     2160.377 
+   17500       175000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2221.5369 
+   18000       180000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2277.9323 
+   18500       185000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2343.9474 
+   19000       190000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2425.5229 
+   19500       195000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2486.6884 
+   20000       200000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2561.5135 
+   20500       205000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2645.4222 
+   21000       210000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2714.6902 
+   21500       215000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2780.9544 
+   22000       220000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2841.3047 
+   22500       225000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2898.1847 
+   23000       230000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    2955.6633 
+   23500       235000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3014.5091 
+   24000       240000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3073.5799 
+   24500       245000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3130.0057 
+   25000       250000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3187.9311 
+   25500       255000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3248.4968 
+   26000       260000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3317.4998 
+   26500       265000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3379.7209 
+   27000       270000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3439.8512 
+   27500       275000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3500.1703 
+   28000       280000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     3578.809 
+   28500       285000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3647.4497 
+   29000       290000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3721.6828 
+   29500       295000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3782.3203 
+   30000       300000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3846.6021 
+   30500       305000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3910.2749 
+   31000       310000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    3976.6716 
+   31500       315000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4071.6669 
+   32000       320000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4143.0181 
+   32500       325000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4218.2258 
+   33000       330000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4301.8255 
+   33500       335000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4393.7275 
+   34000       340000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4456.0506 
+   34500       345000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4520.1253 
+   35000       350000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4576.5027 
+   35500       355000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4632.8978 
+   36000       360000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4689.4041 
+   36500       365000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4746.2052 
+   37000       370000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4821.3741 
+   37500       375000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4877.9708 
+   38000       380000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4934.5053 
+   38500       385000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    4994.8773 
+   39000       390000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5058.9986 
+   39500       395000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5115.7683 
+   40000       400000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5171.9662 
+   40500       405000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5228.5351 
+   41000       410000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5284.7284 
+   41500       415000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5345.6279 
+   42000       420000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5402.4631 
+   42500       425000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5462.5689 
+   43000       430000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5518.8792 
+   43500       435000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5575.0495 
+   44000       440000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5634.7304 
+   44500       445000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5693.3192 
+   45000       450000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5759.9789 
+   45500       455000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5818.8045 
+   46000       460000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    5887.5382 
+   46500       465000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     5945.223 
+   47000       470000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6008.3733 
+   47500       475000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6067.3725 
+   48000       480000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6128.7317 
+   48500       485000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6185.0766 
+   49000       490000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6243.7604 
+   49500       495000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6301.5785 
+   50000       500000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6357.8978 
+   50500       505000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6414.4268 
+   51000       510000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6470.8548 
+   51500       515000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6527.5661 
+   52000       520000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6586.3991 
+   52500       525000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6647.5362 
+   53000       530000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6706.7149 
+   53500       535000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6763.4602 
+   54000       540000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6820.8881 
+   54500       545000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6879.3551 
+   55000       550000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6935.8345 
+   55500       555000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    6993.2294 
+   56000       560000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     7051.131 
+   56500       565000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7107.5909 
+   57000       570000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7165.3016 
+   57500       575000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7222.2321 
+   58000       580000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7281.0621 
+   58500       585000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7335.7536 
+   59000       590000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7390.0805 
+   59500       595000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7445.7494 
+   60000       600000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7500.2778 
+   60500       605000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7557.0281 
+   61000       610000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7611.0108 
+   61500       615000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7664.9132 
+   62000       620000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7718.8961 
+   62500       625000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7773.1302 
+   63000       630000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7827.8288 
+   63500       635000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7881.8288 
+   64000       640000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7935.8223 
+   64500       645000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    7989.8077 
+   65000       650000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8043.9099 
+   65500       655000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8098.2257 
+   66000       660000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8152.3397 
+   66500       665000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8206.4847 
+   67000       670000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8260.4288 
+   67500       675000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8314.2553 
+   68000       680000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8368.5358 
+   68500       685000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8423.4184 
+   69000       690000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8481.1284 
+   69500       695000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8535.0684 
+   70000       700000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8588.9486 
+   70500       705000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     8643.398 
+   71000       710000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8697.5521 
+   71500       715000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8751.7837 
+   72000       720000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8805.7931 
+   72500       725000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8859.6763 
+   73000       730000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8915.6229 
+   73500       735000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    8974.0487 
+   74000       740000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9037.5675 
+   74500       745000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9094.4248 
+   75000       750000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9154.4261 
+   75500       755000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9212.4605 
+   76000       760000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9269.1327 
+   76500       765000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9327.1487 
+   77000       770000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9383.0802 
+   77500       775000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9439.7936 
+   78000       780000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     9495.784 
+   78500       785000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     9552.668 
+   79000       790000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9610.6233 
+   79500       795000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9666.5968 
+   80000       800000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9723.1212 
+   80500       805000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9779.0904 
+   81000       810000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     9840.659 
+   81500       815000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9913.7407 
+   82000       820000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    9975.7806 
+   82500       825000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10033.095 
+   83000       830000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     10088.93 
+   83500       835000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10146.665 
+   84000       840000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10203.683 
+   84500       845000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10259.701 
+   85000       850000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10316.425 
+   85500       855000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463      10372.6 
+   86000       860000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10429.528 
+   86500       865000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10485.168 
+   87000       870000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10540.693 
+   87500       875000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10596.676 
+   88000       880000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10653.586 
+   88500       885000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10709.744 
+   89000       890000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10766.326 
+   89500       895000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10822.594 
+   90000       900000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10878.545 
+   90500       905000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10934.723 
+   91000       910000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    10999.361 
+   91500       915000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     11070.93 
+   92000       920000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11130.187 
+   92500       925000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11193.539 
+   93000       930000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11259.046 
+   93500       935000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11336.216 
+   94000       940000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     11411.08 
+   94500       945000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11475.358 
+   95000       950000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11532.187 
+   95500       955000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11589.437 
+   96000       960000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11660.947 
+   96500       965000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11719.821 
+   97000       970000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11785.094 
+   97500       975000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11855.367 
+   98000       980000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11923.685 
+   98500       985000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    11999.611 
+   99000       990000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    12068.825 
+   99500       995000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463     12123.67 
+  100000      1000000          nan          nan          nan          nan          nan          nan          nan       110592   0.80672463    12177.642 
+Loop time of 12177.6 on 2 procs for 100000 steps with 3375 atoms
+
+Performance: 7.095 ns/day, 3.383 hours/ns, 8.212 timesteps/s
+93.3% CPU use with 2 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 7620.7     | 9886.4     | 12152      |2278.7 | 81.18
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 16.201     | 2281.8     | 4547.5     |4742.9 | 18.74
+Output  | 0.11185    | 0.121      | 0.13015    |   2.6 |  0.00
+Modify  | 6.6928     | 6.7163     | 6.7398     |   0.9 |  0.06
+Other   |            | 2.577      |            |       |  0.02
+
+Nlocal:    1687.5 ave 1800 max 1575 min
+Histogram: 1 0 0 0 0 0 0 0 0 1
+Nghost:    3604.5 ave 3717 max 3492 min
+Histogram: 1 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 2 0 0 0 0 0 0 0 0 0
+FullNghs:  79803 ave 91635 max 67971 min
+Histogram: 1 0 0 0 0 0 0 0 0 1
+
+Total # of neighbors = 159606
+Ave neighs/atom = 47.2907
+Neighbor list builds = 0
+Dangerous builds = 0
+
+
+# ----------------- Run Section -----------------
+
+# The lines above define the system you want to simulate.
+# What you do next is up to you.
+# Typically a user would minimize and equilibrate
+# the system using commands similar to the following:
+#  ----   examples   ----
+#
+#  -- minimize --
+# minimize 1.0e-5 1.0e-7 1000 10000
+# (Note: Some fixes, for example "shake", interfere with the minimize command,
+#        You can use the "unfix" command to disable them before minimization.)
+#  -- declare time step for normal MD --
+# timestep 1.0
+#  -- run at constant pressure (Nose-Hoover)--
+# fix   fxnpt all npt temp 300.0 300.0 100.0 iso 1.0 1.0 1000.0 drag 1.0
+#  -- ALTERNATELY, run at constant volume (Nose-Hoover) --
+# fix   fxnvt all nvt temp 300.0 300.0 500.0 tchain 1
+#  -- ALTERNATELY, run at constant volume using Langevin dynamics. --
+#  -- (This is good for sparse CG polymers in implicit solvent.)   --
+# fix fxLAN all langevin 300.0 300.0 5000 48279
+# fix fxNVE all nve  #(<--needed by fix langevin)
+#  -- Now, finally run the simulation --
+# run   50000
+#  ---- (end of examples) ----
+
+Total wall time: 3:22:57

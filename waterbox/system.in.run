@@ -1,0 +1,9 @@
+  unfix f1
+  fix f2 mW nvt temp 283 263 1000 tchain 10
+  fix_modify f2 temp mWtemp
+
+  reset_timestep 0
+  run 0
+
+  timestep 10
+  run 100000

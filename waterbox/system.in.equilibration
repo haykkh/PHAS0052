@@ -1,0 +1,14 @@
+  compute mWtemp mW temp
+  thermo 500
+  thermo_style custom step time etotal c_mWtemp ke pe enthalpy temp press vol density cpu
+  thermo_modify flush yes
+
+  fix fMin OH setforce 0 0 0 
+
+  dump d1 all xtc 500 trj.xtc
+  minimize 1e-13 1e-15 5000 50000
+  velocity mW create 283 632532 dist gaussian mom yes rot yes
+
+  timestep 5
+  fix f1 mW nvt temp 283 283 500 tchain 10
+  fix_modify f1 temp mWtemp

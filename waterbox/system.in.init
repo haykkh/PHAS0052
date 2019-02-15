@@ -1,0 +1,13 @@
+        units real
+        pair_style sw
+    # -- Default styles for "WatMW" --
+    units           real
+    pair_style      sw
+  dimension 3
+  newton on
+  processors * * *
+  boundary p p p
+  atom_style atomic
+  box tilt large
+
+

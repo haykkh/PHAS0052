@@ -1,0 +1,132 @@
+# This is a relatively complex example containing two different types of
+# molecules, and a hybrid of Lennard-Jones and 3-body SW "pair" styles.
+
+import "wall.lt"
+import "watmw.lt"
+
+write_once("Data Boundary") {
+  0.000000   48.000 xlo xhi
+  0.000000   48.000 ylo yhi
+  0.000000   48.000 zlo zhi
+}
+
+write_once("system.in.sw") {
+mW OH OH 6.189 2.3925 1.8 23.15 1.2 -0.333333333333 7.049556277 0.6022245584 4.0 0.0 0.00001
+OH mW OH 6.189 2.3925 1.8 23.15 1.2 -0.333333333333 7.049556277 0.6022245584 4.0 0.0 0.00001
+OH OH mW 6.189 2.3925 1.8 23.15 1.2 -0.333333333333 7.049556277 0.6022245584 4.0 0.0 0.00001
+OH mW mW 6.189 2.3925 1.8 23.15 1.2 -0.333333333333 7.049556277 0.6022245584 4.0 0.0 0.00001
+mW OH mW 6.189 2.3925 1.8 23.15 1.2 -0.333333333333 7.049556277 0.6022245584 4.0 0.0 0.00001
+mW mW OH 6.189 2.3925 1.8 23.15 1.2 -0.333333333333 7.049556277 0.6022245584 4.0 0.0 0.00001
+}
+
+wat = new WatMW [13].move(0,0,4)
+                [13].move(0,4,0)
+                [13].move(4,0,0)
+
+wall = new Wall [15].move(4.0,0,0) # x-y plane
+                 [15].move(0,4.0,0)
+
+wall[*][*].move(-4,-4,-4.0)
+
+wall2 = new Wall [14].move(0,0,4.0) # x-z plane
+                  [15].move(4.0,0,0)
+wall2[*][*].move(-4,-4,0)
+
+wall3 = new Wall [14].move(0,0,4.0) # y-z plane
+                  [14].move(0,4.0,0)
+wall3[*][*].move(-4,0,0)
+
+wall4 = new Wall [14].move(4.0,0,0) # x-y plane
+                  [14].move(0,4.0,0)
+
+wall4[*][*].move(0,0,52.0)
+
+wall5 = new Wall [13].move(0,0,4.0) # x-z plane
+                  [14].move(4.0,0,0)
+
+wall5[*][*].move(0,52.0,0)
+
+wall6 = new Wall [13].move(0,0,4.0) # y-z plane
+                  [13].move(0,4.0,0)
+
+wall6[*][*].move(52.0,0,0)
+
+
+write_once("In Init") {
+  dimension 3
+  newton on
+  processors * * *
+  boundary p p p
+  atom_style atomic
+  box tilt large
+
+
+}
+
+
+write_once("In Settings") {
+  # -- Now indicate which atom type(s) are simulated using the "sw" pair style 
+  # -- In this case only one of the atom types is used (the mW water "atom").
+
+  pair_coeff  * * system.in.sw mW OH
+    # masses
+  mass 1 18.015
+  mass 2 12.011
+
+  # -- Unfortunately LAMMPS itself does not understand molemlate syntax, so
+  # -- the atoms are identified by order in the list, not by name.  (The "mW" 
+  # -- refers to to an identifier in the system.in.sw file, not watmw.lt.)
+  # -- This command says that the first atom type corresponds to the "mW"
+  # -- atom in system.in.sw, and to ignore the remaining three atom types
+  # -- (correspond to the CH2, CH3, CH4 atom types defined in trappe1998.lt.
+  # --  We don't want to use the "sw" force field for interactions involving 
+  # --  these atom types, so we put "NULL" there.)
+  # -- Note: For this to work, you should probably run moltemplate this way:
+  # --     moltemplate.sh -a "@atom:WatMW/mW 1" system.lt
+  # -- This assigns the atom type named @atom:WatMW/mW to 1  (the first atom)
+}
+
+write_once("In Interactions") {
+  neighbor 2.0 bin
+
+  timestep 10
+  min_style cg
+  run_style verlet
+}
+
+write_once("In Equilibration") {
+  compute mWtemp mW temp
+  thermo 500
+  thermo_style custom step time etotal c_mWtemp ke pe enthalpy temp press vol density cpu
+  thermo_modify flush yes
+
+  fix fMin OH setforce 0 0 0 
+
+  dump d1 all xtc 500 trj.xtc
+#  minimize 1e-13 1e-15 5000 50000
+  velocity mW create 283 632532 dist gaussian mom yes rot yes
+
+  timestep 5
+  fix f1 mW nvt temp 283 283 500 tchain 10
+  fix_modify f1 temp mWtemp
+}
+
+write_once("In Run") {
+  unfix f1
+  fix f2 mW nvt temp 283 263 1000 tchain 10
+  fix_modify f2 temp mWtemp
+
+  reset_timestep 0
+  run 0
+
+  timestep 10
+  run 100000
+}
+
+
+# -- Somewhere we must eventually define interactions 
+# -- between atoms from different molecule types
+
+
+
+
