@@ -1,7 +1,7 @@
 # This is a relatively complex example containing two different types of
 # molecules, and a hybrid of Lennard-Jones and 3-body SW "pair" styles.
 
-import "watmw.lt"
+import "wall.lt"
 
 write_once("Data Boundary") {
   0.000000   48.000 xlo xhi
@@ -9,30 +9,30 @@ write_once("Data Boundary") {
   0.000000   48.000 zlo zhi
 }
 
-wall = new WatMW [15].move(4.0,0,0) # x-y plane
+wall = new Wall [15].move(4.0,0,0) # x-y plane
                  [15].move(0,4.0,0)
 
 wall[*][*].move(-4,-4,-4.0)
 
-wall2 = new WatMW [14].move(0,0,4.0) # x-z plane
+wall2 = new Wall [14].move(0,0,4.0) # x-z plane
                   [15].move(4.0,0,0)
 wall2[*][*].move(-4,-4,0)
 
-wall3 = new WatMW [14].move(0,0,4.0) # y-z plane
+wall3 = new Wall [14].move(0,0,4.0) # y-z plane
                   [14].move(0,4.0,0)
 wall3[*][*].move(-4,0,0)
 
-wall4 = new WatMW [14].move(4.0,0,0) # x-y plane
+wall4 = new Wall [14].move(4.0,0,0) # x-y plane
                   [14].move(0,4.0,0)
 
 wall4[*][*].move(0,0,52.0)
 
-wall5 = new WatMW [13].move(0,0,4.0) # x-z plane
+wall5 = new Wall [13].move(0,0,4.0) # x-z plane
                   [14].move(4.0,0,0)
 
 wall5[*][*].move(0,52.0,0)
 
-wall6 = new WatMW [13].move(0,0,4.0) # y-z plane
+wall6 = new Wall [13].move(0,0,4.0) # y-z plane
                   [13].move(0,4.0,0)
 
 wall6[*][*].move(52.0,0,0)

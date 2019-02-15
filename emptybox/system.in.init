@@ -1,6 +1,5 @@
-    # -- Default styles for "WatMW" --
-    units           real
-    pair_style      sw
+        units real
+        pair_style sw
   # -- Tell LAMMPS we want to use two different pair styles 
   # -- (This overrides earlier settings.)
   pair_style   hybrid  sw  lj/charmm/coul/charmm 9.0 11.0 9.0 11.0

@@ -1,4 +1,4 @@
-    group WatMW type 1  #(Atoms of this type belong to the "WatMW" group)
+        group Wall type 1
   # -- Now indicate which atom type(s) are simulated using the "sw" pair style 
   # -- In this case only one of the atom types is used (the mW water "atom").
 
