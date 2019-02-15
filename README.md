@@ -19,8 +19,11 @@ Our project is on investigating supercooling and the Mpemba effect. Part of that
 
 
     .
+    ├── emptybox            # empty box with 1 OH atom thick walls
     ├── MDavies-resources   # Simulations based on M Davies' files
     ├── moltemplate-watmw   # Simulations based on moltemplates mW files
+    ├── waterbox            # emptybox with mW water atoms inside
+    ├── waterbox+MDavies    # waterbox with MDavies' input script
     └── README.md
 
 
