@@ -1,3 +1,6 @@
-*/*.template
-*.template
-*/*/*.template
+**/*.template
+**/output_ttree/
+
+
+
+
