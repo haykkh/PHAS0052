@@ -1,0 +1,17 @@
+# LAMMPS data for OH mol
+
+Wall {
+    write("Data Atoms") {
+        $atom:wall @atom:wall 0.0 0.0 0.0
+    }
+
+    write_once("Data Masses") {
+        @atom:wall 10
+    }
+
+  write_once("In Settings") {
+    #            i     j     epsilon sigma cutoff
+    pair_coeff @atom:wall @atom:wall  0.05  3.0   7.5    #<--repulsive (approximately)
+    group wallGroup type @atom:wall  #(Atoms of this type belong to the "wallGroup" group)
+  }
+} # Wall
