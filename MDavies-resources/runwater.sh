@@ -39,11 +39,11 @@ mpirun -np 2 lmp_mpi	\
 	-var T0 $TT0		\
 	-var T1 $TT1		\
 
-mv stgrapher.py $OUT/stgrapher.py
+mv csvier.py $OUT/csvier.py
 
 cd $OUT
 
-/Users/haykkhachatryan/.pyenv/versions/2.7.8/bin/python -i ~/pizza/src/pizza.py -f stgrapher.py
+/Users/haykkhachatryan/.pyenv/versions/2.7.8/bin/python -i ~/pizza/src/pizza.py -f csvier.py
 
-mv stgrapher.py ../stgrapher.py
+mv csvier.py ../csvier.py
 
