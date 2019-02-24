@@ -7,10 +7,10 @@ mpirun -np 2 lmp_mpi	\
 	-var trjFile ./test1.xtc 			\
 	-var nRand $(($RANDOM + 10)) 			\
 	-var Timestep 10 					\
-	-var nsRunTime 15 				\
+	-var nsRunTime 10 				\
 	-var psStride 10 				\
 	-var dataIN system.data	\
-	-var T0 300					\
-	-var T1 270
+	-var T0 280					\
+	-var T1 260
 
 

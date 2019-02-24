@@ -97,10 +97,10 @@ run $(50*1000/v_Timestep*2) #rough rule for how long need to equilibrate for a t
 
 ####example of npt run - constant pressure instead of volume. System volume will change with time####
 ##this will likely be necessary for your simulation. If doing bulk liquid (i.e. periodic b.c in xy&z) then need appropraite density - equilibrate with npt then do production run nvt in this case.
-timestep $(v_Timestep/2)
-fix f1 mW npt temp 275 275 $(100*v_Timestep/2) tchain 10 iso 1.0 1.0 $(1000*v_Timestep/2) pchain 10
-fix_modify f1 temp mWtemp
-run $(50*1000/v_Timestep*2)
+#timestep $(v_Timestep/2)
+#fix f1 mW npt temp 275 275 $(100*v_Timestep/2) tchain 10 iso 1.0 1.0 $(1000*v_Timestep/2) pchain 10
+#fix_modify f1 temp mWtemp
+#run $(50*1000/v_Timestep*2)
 
 
 ########production run##########
@@ -108,8 +108,8 @@ run $(50*1000/v_Timestep*2)
 #pass different T0 and T1 to cool as the sim goes -> "cooling ramp" simulation
 #Max temperature change rate you should use for mW model is 0.5K/ns - so run simulation for long enough to obey this rule. i.e. 275K to 265K should be a 20ns simulation
 unfix f1 #have to unfix the previous fix
-fix f2 OH nvt temp ${T0} ${T0} $(100*v_Timestep) tchain 10
-fix_modify f2 temp mWtemp #makes temp become mWtemp -> have to do everytime
+fix f2 OH nvt temp ${T1} ${T1} $(100*v_Timestep) tchain 10
+#fix_modify f2 temp mWtemp #makes temp become mWtemp -> have to do everytime
 
 #dump d1 all xtc $(v_psStride*1000/v_Timestep) ${trjFile} #uncomment to just watch production run
 reset_timestep 0
