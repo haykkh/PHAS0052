@@ -1,0 +1,106 @@
+####################################################################################
+# External variables that have to be passed on call
+# Temperature 	= temperature of the system
+# trjFile	= name of the .xtc trajectory file
+# dataFile	= name of the .data input for Lammps
+# nRand		= random number as seed for the velocity creation
+# Timestep	= timestep in fs
+# Eps		= LJ epsilon of mW C interaction
+# Sigma		= LJ epsilon of mW C interaction
+# nTimesteps	= number of timesteps to run
+# nStride       = stride of thermo and trajectory output
+# pass variables to the script via ${variable_name}
+#####################################################################################
+
+units real
+dimension 3
+newton on
+processors * * * 
+boundary p p p 
+atom_style atomic
+box tilt large
+read_data liq.data
+
+
+###################### MASS ######################
+
+mass 1 18.015
+
+
+###################### GROUPS ######################
+
+group mW type 1
+
+
+###################### INTERACTIONS ######################
+
+pair_style sw  # stilinger-weber potl
+pair_coeff * * mW-mW.sw mW
+
+
+###################### INTERACTIONS ######################
+
+neighbor 2.0 bin
+timestep ${Timestep}
+min_style cg
+run_style verlet
+
+
+###################### COMPUTES ######################
+
+compute mWtemp mW temp
+thermo $(v_psStride*1000/v_Timestep)
+thermo_style custom step time etotal c_mWtemp ke pe enthalpy temp press vol density cpu
+thermo_modify flush yes
+
+
+###################### FIX ######################
+
+#fix wallz mW wall/lj93 zlo 0.001 0.5 2 5
+#fix_modify wallz energy yes
+
+
+###################### RUNNING ######################
+
+dump d1 all xtc $(v_psStride*1000/v_Timestep) ${trjFile}
+
+
+###################### MINIMIZATION ######################
+
+minimize 1e-13 1e-15 5000 50000
+
+
+###################### VELOCITIES ######################
+
+velocity mW create ${T0} ${nRand} dist gaussian mom yes rot yes 
+
+
+###################### EQUILIBRATION ######################
+
+###example of npt run - constant pressure instead of volume. System volume will change with time####
+#this will likely be necessary for your simulation. If doing bulk liquid (i.e. periodic b.c in xy&z) then need appropraite density - equilibrate with npt then do production run nvt in this case.
+timestep $(v_Timestep/2)
+fix f1 mW npt temp 275 275 $(100*v_Timestep/2) tchain 10 iso 1.0 1.0 $(1000*v_Timestep/2) pchain 10
+fix_modify f1 temp mWtemp
+run $(50*1000/v_Timestep*2)
+
+unfix f1
+fix f2 mW nve
+#fix_modify f2 temp mWtemp
+
+run $(500*1000/v_Timestep/2)
+
+
+
+###################### RUN ######################
+
+unfix f2
+fix f3 mW nvt temp ${T0} ${T1} $(100*v_Timestep) tchain 10
+fix_modify f3 temp mWtemp
+
+reset_timestep 0
+run 0
+
+timestep ${Timestep}
+run $(v_nsRunTime*1000000/v_Timestep)
+
